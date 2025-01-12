@@ -154,6 +154,9 @@ NOTE: `<Cmd>lua require('cmp').complete()<CR>` can be used to call these functio
   See |getcmdtype()|.
   NOTE: nvim-cmp does not support the `=` command type.
 
+*cmp.get_registered_sources* ()
+  Get all registered sources.
+
 *cmp.visible* ()
   Return a boolean showing whether the completion menu is visible or not.
 
@@ -427,6 +430,12 @@ autocommands for the User event with the following patterns:
 *CmpReady*
   Invoked when nvim-cmp gets sourced from `plugin/cmp.lua`.
 
+*CmpRegisterSource*
+  Invoke when source was registered.
+
+*CmpUnregisterSource*
+  Invoke when source was un-registered.
+
 ==============================================================================
 Config                                                              *cmp-config*
 
@@ -456,7 +465,13 @@ performance.fetching_timeout~
     Sets the timeout of candidate fetching process.
     The nvim-cmp will wait to display the most prioritized source.
 
-                                        *cmp-config.performance.confirm_resolve_timeout*
+                                *cmp-config.performance.filtering_context_budget*
+performance.filtering_context_budget~
+    `number`
+    Sets the filtering context budget in ms.
+    If filtering takes longer than this, it will be deferred.
+
+                                 *cmp-config.performance.confirm_resolve_timeout*
 performance.confirm_resolve_timeout~
     `number`
     Sets the timeout for resolving item before confirmation.

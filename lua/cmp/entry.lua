@@ -31,6 +31,7 @@ local matcher = require('cmp.matcher')
 ---@field public filter_text string
 ---@field private match_view_args_ret {input:string, word:string, option:cmp.MatchingConfig, matches:table[]}
 local entry = {}
+entry.__index = entry
 
 ---Create new entry
 ---@param ctx cmp.Context

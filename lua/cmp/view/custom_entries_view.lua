@@ -71,13 +71,28 @@ custom_entries_view.new = function()
             if field == types.cmp.ItemField.Abbr then
               a = o
             end
-            vim.api.nvim_buf_set_extmark(buf, custom_entries_view.ns, i, o, {
-              end_line = i,
-              end_col = o + v[field].bytes,
-              hl_group = v[field].hl_group,
-              hl_mode = 'combine',
-              ephemeral = true,
-            })
+
+            if type(v[field].hl_group) == 'table' then
+              for _, extmark in ipairs(v[field].hl_group) do
+                local hl_start, hl_end = unpack(extmark.range)
+                vim.api.nvim_buf_set_extmark(buf, custom_entries_view.ns, i, o + hl_start, {
+                  end_line = i,
+                  end_col = o + hl_end,
+                  hl_group = extmark[1],
+                  hl_eol = false,
+                  ephemeral = true,
+                })
+              end
+            else
+              vim.api.nvim_buf_set_extmark(buf, custom_entries_view.ns, i, o, {
+                end_line = i,
+                end_col = o + v[field].bytes,
+                hl_group = v[field].hl_group,
+                hl_mode = 'combine',
+                ephemeral = true,
+              })
+            end
+
             o = o + v[field].bytes + (self.column_width[field] - v[field].width) + 1
           end
 
@@ -126,6 +141,7 @@ custom_entries_view.open = function(self, offset, entries)
   self.column_width = { abbr = 0, kind = 0, menu = 0 }
 
   local entries_buf = self.entries_win:get_buffer()
+  local fields = config.get().formatting.fields
   local lines = {}
   local dedup = {}
   local formatting = config.get().formatting
@@ -134,9 +150,9 @@ custom_entries_view.open = function(self, offset, entries)
     local view = e:get_view(offset, entries_buf, formatting)
     if view.dup == 1 or not dedup[e.completion_item.label] then
       dedup[e.completion_item.label] = true
-      self.column_width.abbr = math.max(self.column_width.abbr, view.abbr.width)
-      self.column_width.kind = math.max(self.column_width.kind, view.kind.width)
-      self.column_width.menu = math.max(self.column_width.menu, view.menu.width)
+      for _, field in ipairs(fields) do
+        self.column_width[field] = math.max(self.column_width[field], view[field].width)
+      end
       table.insert(self.entries, e)
       table.insert(lines, ' ')
       if preselect_index == 0 and e.completion_item.preselect then

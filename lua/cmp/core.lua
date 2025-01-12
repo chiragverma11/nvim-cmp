@@ -47,8 +47,11 @@ end
 
 ---Unregister source
 ---@param source_id integer
+---@return cmp.Source?
 core.unregister_source = function(self, source_id)
+  local s = self.sources[source_id]
   self.sources[source_id] = nil
+  return s
 end
 
 ---Get new context
@@ -103,6 +106,12 @@ core.get_sources = function(self, filter)
     end
   end
   return sources
+end
+
+---Return registered sources.
+---@return cmp.Source[]
+core.get_registered_sources = function(self)
+  return self.sources
 end
 
 ---Keypress handler
@@ -346,7 +355,7 @@ core.confirm = function(self, e, option, callback)
   end
   e.confirmed = true
 
-  debug.log('entry.confirm', e:get_completion_item())
+  debug.log('entry.confirm', e.completion_item)
 
   async.sync(function(done)
     e:resolve(done)
@@ -388,10 +397,10 @@ core.confirm = function(self, e, option, callback)
   feedkeys.call('', 'n', function()
     -- Apply additionalTextEdits.
     local ctx = context.new()
-    if #(e:get_completion_item().additionalTextEdits or {}) == 0 then
+    if #(e.completion_item.additionalTextEdits or {}) == 0 then
       e:resolve(function()
         local new = context.new()
-        local text_edits = e:get_completion_item().additionalTextEdits or {}
+        local text_edits = e.completion_item.additionalTextEdits or {}
         if #text_edits == 0 then
           return
         end
@@ -416,12 +425,12 @@ core.confirm = function(self, e, option, callback)
       end)
     else
       vim.cmd([[silent! undojoin]])
-      vim.lsp.util.apply_text_edits(e:get_completion_item().additionalTextEdits, ctx.bufnr, e.source:get_position_encoding_kind())
+      vim.lsp.util.apply_text_edits(e.completion_item.additionalTextEdits, ctx.bufnr, e.source:get_position_encoding_kind())
     end
   end)
   feedkeys.call('', 'n', function()
     local ctx = context.new()
-    local completion_item = misc.copy(e:get_completion_item())
+    local completion_item = misc.copy(e.completion_item)
     if not completion_item.textEdit then
       completion_item.textEdit = {}
       local insertText = completion_item.insertText
@@ -448,15 +457,15 @@ core.confirm = function(self, e, option, callback)
       if false then
         --To use complex expansion debug.
         vim.print({ -- luacheck: ignore
-          item = e:get_completion_item(),
+          item = e.completion_item,
           diff_before = diff_before,
           diff_after = diff_after,
           new_text = new_text,
           text_edit_new_text = completion_item.textEdit.newText,
           range_start = completion_item.textEdit.range.start.character,
           range_end = completion_item.textEdit.range['end'].character,
-          original_range_start = e:get_completion_item().textEdit.range.start.character,
-          original_range_end = e:get_completion_item().textEdit.range['end'].character,
+          original_range_start = e.completion_item.textEdit.range.start.character,
+          original_range_end = e.completion_item.textEdit.range['end'].character,
           cursor_line = ctx.cursor_line,
           cursor_col0 = ctx.cursor.col - 1,
         })

@@ -15,6 +15,7 @@ local char = require('cmp.utils.char')
 ---@field public source any
 ---@field public cache cmp.Cache
 ---@field public revision integer
+---@field public response? lsp.CompletionResponse|nil
 ---@field public incomplete boolean
 ---@field public is_triggered_by_symbol boolean
 ---@field public entries cmp.Entry[]
@@ -115,6 +116,9 @@ source.get_entries = function(self, ctx)
   ---@type cmp.Entry[]
   local entries = {}
   local matching_config = self:get_matching_config()
+  local filtering_context_budget = config.get().performance.filtering_context_budget / 1000
+
+  local stime = (vim.uv or vim.loop).hrtime() / 1000000
   for _, e in ipairs(target_entries) do
     local o = e.offset
     if not inputs[o] then
@@ -132,9 +136,14 @@ source.get_entries = function(self, ctx)
         entries[#entries + 1] = e
       end
     end
-    async.yield()
-    if ctx.aborted then
-      async.abort()
+
+    local etime = (vim.uv or vim.loop).hrtime() / 1000000
+    if etime - stime > filtering_context_budget then
+      async.yield()
+      if ctx.aborted then
+        async.abort()
+      end
+      stime = etime
     end
   end
 
@@ -333,6 +342,7 @@ source.complete = function(self, ctx, callback)
       end
       ---@type lsp.CompletionResponse
       response = response or {}
+      self.response = response
 
       self.incomplete = response.isIncomplete or false
       self.status = source.SourceStatus.COMPLETED
